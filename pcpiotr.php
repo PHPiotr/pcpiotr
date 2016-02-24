@@ -112,7 +112,7 @@ function pcpiotr_civicrm_caseTypes(&$caseTypes) {
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_caseTypes
  */
 function pcpiotr_civicrm_angularModules(&$angularModules) {
-_pcpiotr_civix_civicrm_angularModules($angularModules);
+  _pcpiotr_civix_civicrm_angularModules($angularModules);
 }
 
 /**
@@ -124,45 +124,25 @@ function pcpiotr_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
   _pcpiotr_civix_civicrm_alterSettingsFolders($metaDataFolders);
 }
 
-/**
- * Functions below this ship commented out. Uncomment as required.
- *
-
-/**
- * Implements hook_civicrm_preProcess().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_preProcess
- *
-function pcpiotr_civicrm_preProcess($formName, &$form) {
-
-} // */
-
-/**
- * Implements hook_civicrm_navigationMenu().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
- *
-function pcpiotr_civicrm_navigationMenu(&$menu) {
-  _pcpiotr_civix_insert_navigation_menu($menu, NULL, array(
-    'label' => ts('The Page', array('domain' => 'pl.nazwa.phpiotr.pcpiotr')),
-    'name' => 'the_page',
-    'url' => 'civicrm/the-page',
-    'permission' => 'access CiviReport,access CiviContribute',
-    'operator' => 'OR',
-    'separator' => 0,
-  ));
-  _pcpiotr_civix_navigationMenu($menu);
-} // */
-
 function pcpiotr_civicrm_tabset($tabsetName, &$tabs, $context) {
-  if ($tabsetName !== 'civicrm/contact/view') {
+  if ($tabsetName != 'civicrm/contact/view') {
     return;
   }
+
   if (empty($context)) {
     return;
   }
+
   $contactID = (int) $context['contact_id'];
+
+  $result = civicrm_api3('Pcp', 'get', array(
+    'sequential' => 1,
+    'return' => array('count'),
+    'contact_id' => $contactID,
+  ));
+
   $url = CRM_Utils_System::url('civicrm/contact/view/personal-campaign-pages', "cid=$contactID&reset=1&force=1");
+
   $tabs[] = array(
     'id' => 'pcp',
     'title' => ts('Personal Campaign Pages'),
@@ -171,6 +151,6 @@ function pcpiotr_civicrm_tabset($tabsetName, &$tabs, $context) {
     'active' => 1,
     'current' => false,
     'class' => 'livePage',
-    'count' => CRM_Pcpiotr_Page_PersonalCampaignPages::getPcpsCountForContact($contactID),
+    'count' => $result['count'],
   );
 }

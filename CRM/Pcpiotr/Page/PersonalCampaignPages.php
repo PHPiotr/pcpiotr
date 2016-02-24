@@ -13,37 +13,12 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
     parent::run();
   }
 
-  public static function getPcpsCountForContact($contactId) {
-    $query = "SELECT COUNT(id) pcp_count FROM civicrm_pcp WHERE contact_id = %1";
-    $result = CRM_Core_DAO::executeQuery($query, array('1' => array($contactId, 'Integer')));
-    $fetchAll = $result->fetchAll();
-    $pcpCount = (int) $fetchAll[0]['pcp_count'];
-
-    return $pcpCount;
-  }
-
   private function getPcpsForContact($contactId) {
     $status = CRM_PCP_BAO_PCP::buildOptions('status_id', 'create');
 
     $approvedId = CRM_Core_OptionGroup::getValue('pcp_status', 'Approved', 'name');
 
-    $query = 'SELECT title FROM civicrm_contribution_page';
-    $cpages = CRM_Core_DAO::executeQuery($query);
-    while ($cpages->fetch()) {
-      $pages['contribute'][$cpages->id]['title'] = $cpages->title;
-    }
-
-    $query = 'SELECT title FROM civicrm_event  WHERE is_template IS NULL OR is_template != 1';
-    $epages = CRM_Core_DAO::executeQuery($query);
-    while ($epages->fetch()) {
-      $pages['event'][$epages->id]['title'] = $epages->title;
-    }
-
-    $query = "
-        SELECT cp.id, cp.contact_id , cp.status_id, cp.title, cp.is_active, cp.page_type, cp.page_id, cp.goal_amount
-        FROM civicrm_pcp cp
-        WHERE cp.contact_id = %1 ORDER BY cp.status_id";
-    $pcp = CRM_Core_DAO::executeQuery($query, array('1' => array($contactId, 'Integer')));
+    $pages = $this->getPages();
 
     $action_key = CRM_Core_Action::UPDATE;
 
@@ -58,53 +33,88 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
 
     $pcps = array();
 
-    while ($pcp->fetch()) {
+    $pcpResult = civicrm_api3('Pcp', 'get', array(
+      'sequential' => 1,
+      'contact_id' => $contactId,
+    ));
+
+    foreach ($pcpResult['values'] as $key => $pcp) {
 
       $class = '';
-      if ($pcp->status_id != $approvedId || $pcp->is_active != 1) {
+      if ($pcp['status_id'] != $approvedId || $pcp['is_active'] != 1) {
         $class = 'disabled';
       }
 
-      $page_type = $pcp->page_type;
-      $page_id = (int) $pcp->page_id;
-      $title = $pages[$page_type][$page_id]['title'];
+      $pageType = $pcp['page_type'];
+      $pageId = (int) $pcp['page_id'];
+      $title = $pages[$pageType][$pageId]['title'];
       if ($title == '' || $title == NULL) {
-        $title = '(no title found for ' . $page_type . ' id ' . $page_id . ')';
+        $title = '(no title found for ' . $pageType . ' id ' . $pageId . ')';
       }
 
-      if ($pcp->page_type == 'contribute') {
-        $pageUrl = CRM_Utils_System::url('civicrm/' . $page_type . '/transact', 'reset=1&id=' . $pcp->page_id);
+      if ($pcp['page_type'] == 'contribute') {
+        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/transact', 'reset=1&id=' . $pcp['page_id']);
       }
       else {
-        $pageUrl = CRM_Utils_System::url('civicrm/' . $page_type . '/register', 'reset=1&id=' . $pcp->page_id);
+        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/register', 'reset=1&id=' . $pcp['page_id']);
       }
 
-      $contributionData = $this->getContributionDataForPcp($pcp->id);
+      $contributionData = $this->getContributionDataForPcp($pcp['id']);
 
-      $pcps[$pcp->id] = array(
-        'id' => $pcp->id,
-        'status_id' => $status[$pcp->status_id],
-        'target_amount' => $pcp->goal_amount,
-        'page_id' => $page_id,
-        'page_title' => $title,
-        'page_url' => $pageUrl,
-        'page_type' => $page_type,
-        'action' => CRM_Core_Action::formLink($edit_link, $action_key, array('id' => $pcp->id), ts('more'), FALSE, 'contributionpage.pcp.list', 'PCP', $pcp->id),
-        'title' => $pcp->title,
-        'class' => $class,
-        'amount_raised' => $contributionData[0]['amount_raised'],
-        'no_of_contributions' => $contributionData[0]['no_of_contributions']
-      );
+      $pcps[$pcp['id']] = $pcp;
+      $pcps[$pcp['id']]['page_title'] = $pcp['title'];
+      $pcps[$pcp['id']]['page_url'] = $pageUrl;
+      $pcps[$pcp['id']]['status'] = $status[$pcp['status_id']];
+      $pcps[$pcp['id']]['contribution_page_event'] = $title;
+      $pcps[$pcp['id']]['no_of_contributions'] = $contributionData['no_of_contributions'];
+      $pcps[$pcp['id']]['amount_raised'] = $contributionData['amount_raised'];
+      $pcps[$pcp['id']]['target_amount'] = $pcp['goal_amount'];
+      $pcps[$pcp['id']]['action'] = CRM_Core_Action::formLink($edit_link, $action_key, array('id' => $pcp['id']), ts('more'), FALSE, 'contributionpage.pcp.list', 'PCP', $pcp['id']);
+      $pcps[$pcp['id']]['class'] = $class;
     }
 
     return $pcps;
   }
 
   private function getContributionDataForPcp($pcp_id) {
-    $query = "SELECT sum(amount) amount_raised, count(id) no_of_contributions FROM `civicrm_contribution_soft` WHERE pcp_id = %1";
-    $result = CRM_Core_DAO::executeQuery($query, array('1' => array($pcp_id, 'Integer')));
+    $data = array('no_of_contributions' => 0, 'amount_raised' => 0.00);
 
-    return $result->fetchAll();
+    $result = civicrm_api3('ContributionSoft', 'get', array(
+      'sequential' => 1,
+      'pcp_id' => $pcp_id,
+    ));
+
+    $data['no_of_contributions'] = $result['count'];
+
+    if (!$result['count']) {
+      return $data;
+    }
+
+    foreach ($result['values'] as $key => $value) {
+      $data['amount_raised'] += (float) $value['amount'];
+    }
+
+    $data['amount_raised'] = number_format($data['amount_raised'], 2);
+
+    return $data;
+  }
+
+  private function getPages() {
+    $pages = array();
+
+    $contributionPageResult = civicrm_api3('ContributionPage', 'get');
+
+    foreach ($contributionPageResult['values'] as $contributionPage) {
+      $pages['contribute'][$contributionPage['id']]['title'] = $contributionPage['title'];
+    }
+
+    $eventResult = civicrm_api3('Event', 'get');
+
+    foreach ($eventResult['values'] as $event) {
+      $pages['event'][$event['id']]['title'] = $event['title'];
+    }
+
+    return $pages;
   }
 
 }

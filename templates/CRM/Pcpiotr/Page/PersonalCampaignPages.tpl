@@ -23,9 +23,9 @@
     <tbody>
       {foreach from=$rows item=row}
       <tr id="row_{$row.id}" class="{$row.class}">
-        <td><a href="{crmURL p='civicrm/pcp/info' q="reset=1&id=`$row.id`" fe='true'}" title="{ts}View Personal Campaign Page{/ts}" target="_blank">{$row.title}</a></td>
-        <td>{$row.status_id}</td>
-        <td>{$row.page_title}</td>
+        <td><a href="{crmURL p='civicrm/pcp/info' q="reset=1&id=`$row.id`" fe='true'}" title="{ts}View Personal Campaign Page{/ts}" target="_blank">{$row.page_title}</a></td>
+        <td>{$row.status}</td>
+        <td>{$row.contribution_page_event}</td>
         <td>{$row.no_of_contributions}</td>
         <td>{$row.amount_raised}</td>
         <td>{$row.target_amount}</td>
