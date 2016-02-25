@@ -136,7 +136,6 @@ function pcpiotr_civicrm_tabset($tabsetName, &$tabs, $context) {
   $contactID = (int) $context['contact_id'];
 
   $result = civicrm_api3('Pcp', 'get', array(
-    'sequential' => 1,
     'return' => array('count'),
     'contact_id' => $contactID,
   ));

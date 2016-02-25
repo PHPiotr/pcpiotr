@@ -17,7 +17,6 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
 
     try {
       $result = civicrm_api3('Pcp', 'get', array(
-        'sequential' => 1,
         'contact_id' => $contactId,
         'api.ContributionPage.get' => array('id' => "\$value.page_id", 'return' => "title"),
         'api.Event.get' => array('id' => "\$value.page_id", 'return' => "title"),
@@ -49,7 +48,7 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
 
     $pcps = array();
 
-    foreach ($result['values'] as $pcp) {
+    foreach ($result['values'] as $pcpId => $pcp) {
 
       $class = '';
       if ($pcp['status_id'] != $approvedId || $pcp['is_active'] != 1) {
@@ -61,11 +60,11 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
 
       if ($pageType == 'contribute') {
         $contributionPageEvent = $pcp['api.ContributionPage.get']['values'][0]['title'];
-        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/transact', 'reset=1&id=' . $pcp['page_id']);
+        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/transact', 'reset=1&id=' . $pageId);
       }
       else {
         $contributionPageEvent = $pcp['api.Event.get']['values'][0]['title'];
-        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/register', 'reset=1&id=' . $pcp['page_id']);
+        $pageUrl = CRM_Utils_System::url('civicrm/' . $pageType . '/register', 'reset=1&id=' . $pageId);
       }
 
       if ($contributionPageEvent == '' || $contributionPageEvent == NULL) {
@@ -74,15 +73,15 @@ class CRM_Pcpiotr_Page_PersonalCampaignPages extends CRM_Core_Page {
 
       $contributionSoft = $this->getContributionSoft($pcp['api.ContributionSoft.get']);
 
-      $pcps[$pcp['id']]['page_title'] = $pcp['title'];
-      $pcps[$pcp['id']]['page_url'] = $pageUrl;
-      $pcps[$pcp['id']]['status'] = $status[$pcp['status_id']];
-      $pcps[$pcp['id']]['contribution_page_event'] = $contributionPageEvent;
-      $pcps[$pcp['id']]['no_of_contributions'] = $contributionSoft['no_of_contributions'];
-      $pcps[$pcp['id']]['amount_raised'] = $contributionSoft['amount_raised'];
-      $pcps[$pcp['id']]['target_amount'] = $pcp['goal_amount'];
-      $pcps[$pcp['id']]['action'] = CRM_Core_Action::formLink($edit_link, $action_key, array('id' => $pcp['id'], 'cid' => $contactId), ts('more'), FALSE, 'contributionpage.pcp.list', 'PCP', $pcp['id']);
-      $pcps[$pcp['id']]['class'] = $class;
+      $pcps[$pcpId]['page_title'] = $pcp['title'];
+      $pcps[$pcpId]['page_url'] = $pageUrl;
+      $pcps[$pcpId]['status'] = $status[$pcp['status_id']];
+      $pcps[$pcpId]['contribution_page_event'] = $contributionPageEvent;
+      $pcps[$pcpId]['no_of_contributions'] = $contributionSoft['no_of_contributions'];
+      $pcps[$pcpId]['amount_raised'] = $contributionSoft['amount_raised'];
+      $pcps[$pcpId]['target_amount'] = $pcp['goal_amount'];
+      $pcps[$pcpId]['action'] = CRM_Core_Action::formLink($edit_link, $action_key, array('id' => $pcpId, 'cid' => $contactId), ts('more'), FALSE, 'contributionpage.pcp.list', 'PCP', $pcpId);
+      $pcps[$pcpId]['class'] = $class;
     }
 
     return $pcps;
