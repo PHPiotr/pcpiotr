@@ -21,15 +21,15 @@
       </tr>
     </thead>
     <tbody>
-      {foreach from=$rows item=row}
+      {foreach from=$rows item=row key=key}
       <tr id="row_{$row.id}" class="{$row.class}">
-        <td><a href="{crmURL p='civicrm/pcp/info' q="reset=1&id=`$row.id`" fe='true'}" title="{ts}View Personal Campaign Page{/ts}" target="_blank">{$row.page_title}</a></td>
+        <td><a href="{crmURL p='civicrm/pcp/info' q="reset=1&id=`$key`" fe='true'}" title="{ts}View Personal Campaign Page{/ts}" target="_blank">{$row.page_title}</a></td>
         <td>{$row.status}</td>
         <td>{$row.contribution_page_event}</td>
         <td>{$row.no_of_contributions}</td>
         <td>{$row.amount_raised}</td>
         <td>{$row.target_amount}</td>
-        <td id={$row.id}>{$row.action|replace:'xx':$row.id}</td>
+        <td>{$row.action}</td>
       </tr>
       {/foreach}
     </tbody>
